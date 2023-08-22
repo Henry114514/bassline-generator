@@ -1,0 +1,81 @@
+;; In this case each bar is equally spilitted into sixteenth notes, 
+;; where numbers 0 - 15 each represents one siexteeth note in sequence. 
+;; Here, the bassline generator is splited into rhythm and pitch, 
+;; where each is generated separately. 
+;;
+;; In each beat, the first sixteenth is the strongest note, 
+;; the third sixteenth is the second strongest note, 
+;; and swg-tibetan-bowl(step, bowpress-env);; A synth bass created by low passing an unison of slightly detuned saw (supersaw)
+
+load "drum.sal"
+load "initialize functions.sal"
+
+;; Generate a number based on the position indicating whether there
+;; should be a note on the given position. This is determined by
+;; type of beat: downbeat, upbeat, and weakbeat.
+;;
+;; This function only supports 4/4 time signature, so an improvement would
+;; be making this function support other time signature. 
+
+function next-rhythm(position, downbeat, upbeat, weakbeat, offset: 0)
+  begin
+    if position = 0 & downbeat > 0 then
+      return 4 ;; maybe the strength can also be represented
+    if position % 4 = 0 then
+      return random-one(downbeat + offset) * 3
+    else
+      if position % 2 = 0 then
+          return random-one(upbeat + offset) * 2
+        else
+          return random-one(weakbeat + offset)
+  end
+
+;; Call next-rhythm for each bar
+;; n determines how many beats are generated
+;;
+;; max-consec works by maintaining a consec variable that is the current number
+;; of consecutive notes. 
+function rhythm-generate(downbeat: 0.5, upbeat: 0.5, weakbeat: 0.5, n: 16, max-consec: 16)
+  begin
+    with r-array = make-array(n), consec = 0
+
+    loop
+      for i from 0 below n
+        set temp = next-rhythm(i, downbeat, upbeat, weakbeat, 
+                              offset: #if(consec >= max-consec, -1, 0)) 
+        ;; If consec = max-consec make offset -1, which makes the note 0 
+        ;; in all cases as 0 <= p <= 1
+
+        set r-array[i] = temp
+
+      if temp > 0 then 
+        set consec = consec + 1
+      else
+        set consec = 0
+
+    end
+    return r-array
+ end
+
+set new-rhythm = rhythm-generate(downbeat: 0.8, upbeat: 0.7, weakbeat: 0.7, max-consec: 3)
+
+
+;; Call 
+;; Repeating the bassline two times to make it sound more natural
+function bass-rhythm-example(notes)
+  begin
+    with example-drum = drum-loop(2) ~ 0.25, 
+        example-bass = seqrep(
+        i, length(notes), ;; Looping through each number in the array
+        #if(notes[i] > 0, ;; If notes is greater than 0, play a bass note, if the note is 0, play nothing
+          bass(c2) * 2, 
+          bass(c3) * 0
+          ) ~ 0.125
+      )
+    
+    play seqrep(i, 2,
+      sim(example-drum, example-bass)
+    ) ;; Repeat the bassline with drums two times
+  end
+
+exec bass-rhythm-example(new-rhythm)

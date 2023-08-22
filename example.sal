@@ -1,0 +1,21 @@
+load "pitch generation.sal"
+load "drum.sal"
+
+set chord-progression = vector(vector(A1, C2, E2, A2), vector(F2, A2, C3, F3), vector(D2, F2, A2, C3), vector(E2, GS2, B2, D3))
+
+set supersaw-chord-progression = vector(vector(A3, C4, E4, A4), vector(F3, A3, C4, A4), vector(D3, F3, A3, A4), vector(E3, B3, E4, GS4))
+
+set rhythm = rhythm-generate(downbeat: 0.6, upbeat: 0.8, weakbeat: 0.3, max-consec: 4)
+set pitch = generate-pitch(rhythm, vector(C2), 1, direct: #f, octave: 0.8, seventh: 0.4, fifth: 0.4, third: 0.4)
+
+print rhythm
+
+set bassline = seqrep(i, length(chord-progression), play-bassline(generate-pitch(rhythm, chord-progression[i], 0.8, octave: 1, seventh: 0.4, fifth: 0.6, third: 0.4)) * 2) ~ 0.25
+
+set bassline2 = seqrep(i, length(chord-progression), relative-pitch(pitch, chord-progression[i])) ~ 0.25
+
+set supersaw-seq = seqrep(i, length(supersaw-chord-progression), supersaw-chord(supersaw-chord-progression[i]) * 0.5) ~ 2
+
+set drum-seq = drum-loop(2 * length(chord-progression)) ~ 0.25
+play sim(bassline, drum-seq) ~ 0.1
+;; play sim(bassline2, drum-seq)

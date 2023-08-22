@@ -1,0 +1,30 @@
+set *default-sf-dir* = "D:\Drum Samples"
+
+function kick()
+    return s-read("kick.wav")
+function clap()
+    return s-read("clap.wav")
+function oh()
+    return s-read("open-hihat.wav")
+function hihat()
+  return s-read("hihat.wav")
+
+function rest()
+  return bass(c5) * 0
+
+set temp-score = {
+        {0 0 {score-begin-end 0 4}}
+        {0 1 {kick}}
+        {0 1 {oh}}
+        {1 1 {hihat}}
+        {2 1 {kick}}
+        {2 1 {oh}}
+        {2 1 {clap}}
+                  {3 1 {hihat}}
+                  {3 1 {rest}}
+                 }
+
+function drum-loop(n)
+  begin 
+        return timed-seq(score-repeat(temp-score, n))
+  end

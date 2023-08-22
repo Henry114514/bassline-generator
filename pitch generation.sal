@@ -1,0 +1,88 @@
+load "Rhythm generation.sal"
+load "initialize functions.sal"
+
+;; Notes are classified into root and orniment, where the probability of orniment = 1 - root.
+;; The bass note of the chord are considered as the root.
+;; Notes such as thirds, fifths, pentatonic scale, blues scale are considered as orniments. 
+;; For each 
+;; Direct determines whether the note is directly outputted as a pitch or a representation of the 
+;; note in a chord. 
+function next-pitch(note-type, chord-notes, root, direct: #t, octave: 1, seventh: 0, fifth: 0, third: 0)
+  begin
+    if direct = #t then
+      set root-note = chord-notes[0], 
+                      octave-note = chord-notes[0] + 12, 
+                      seventh-note = #if(length(chord-notes) = 4, chord-notes[3], octave-note), 
+                      fifth-note = chord-notes[2], 
+                      third-note = chord-notes[1]
+    else
+      ;; 0 represents rest
+        set root-note = 1,
+                      octave-note = 5, 
+                      seventh-note = 4, 
+                      fifth-note = 3, 
+                      third-note = 2
+        
+    set note-list = vector(third-note, fifth-note, seventh-note, octave-note)
+    
+    ;; Root-weight is the probability of position 0, 1, 2, 3, 4 being the root note
+    set root-weight = vector(0, 0.7, 0.85, 0.8, 1)
+    
+    set user-weight = vector(third, fifth, seventh, octave)
+    ;; These weights are the probability of third, fifth, seventh, and octave being on the
+    ;; position downbeat, upbeat, weakbeat
+    set upbeat-weight = vector(0.7, 0.8, 0.9, 1) * user-weight,
+        downbeat-weight = vector(0.7, 0.8, 0.5, 1) * user-weight,
+        weakbeat-weight = vector(0.9, 1, 0.7, 1) * user-weight
+
+    if note-type = 0 then return 0
+
+    if note-type = 4 & root > 0 then
+      return root-note
+    
+    ;; Either root or an orniment is selected
+    if random-one(root * root-weight[note-type]) = 1 then
+      return root-note
+    else
+      if note-type = 3 then
+        return weighted-random(downbeat-weight, note-list)
+      if note-type = 2 then
+        return weighted-random(upbeat-weight, note-list)
+      if note-type = 1 then
+        return weighted-random(weakbeat-weight, note-list)
+  end
+
+;; Rhythm should be an array composed of numbers from 0 - 4 where each represents importance
+;; Chord should be an array of notes indicating the chord notes
+;; Calls next-pitch for each note
+function generate-pitch(rhythm, chord, root, direct: #t, octave: 1, seventh: 0, fifth: 0, third: 0)
+  begin 
+    with n = length(rhythm), p-notes = make-array(n)
+             
+    loop
+      for i from 0 below n
+        set p-notes[i] = next-pitch(rhythm[i], chord, root, direct: direct, octave: octave, seventh: seventh, fifth: fifth, third: third)
+    end
+    return p-notes
+  end
+
+;; Play the bassline using the notes given (in the form of an array)
+function play-bassline(notes)
+  begin 
+    with example-bass = seqrep(
+        i, length(notes), ;; Looping through each number in the array
+        #if(notes[i] > 0,   ;; If notes is greater than 0, play a bass note, if the note is 0, play nothing
+          bass(notes[i]) * 2, 
+          bass(c3) * 0
+          ) ~ 0.5
+      )
+    return example-bass ;; Repeat the bassline with drums two times
+  end
+
+function relative-pitch(rhythm, chord)
+begin
+  return seqrep(i, length(rhythm), 
+                #if(equal(rhythm[i], 0), bass(c5) * 0, 
+                    #if(equal(rhythm[i], 5), bass(chord[0] + 12), bass(chord[rhythm[i] - 1]))) ~ 0.5
+                )
+end
